@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="ProTest – Generate professional exam papers from the 9th Grade CS textbook.">
+    <title>ProTest – Assessment Generator</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+<div class="app-layout">
+
+    <!-- ── Sidebar ── -->
+    <aside class="sidebar no-print" aria-label="Test Configuration">
+        <div class="brand">
+            <span class="brand-icon" aria-hidden="true">📋</span>
+            <h1>ProTest</h1>
+        </div>
+        <p class="subtitle">9th Grade Computer Science &amp; Entrepreneurship · Chapter-wise exam paper generator.</p>
+
+        <form id="config-form" class="config-form" novalidate>
+
+            <section class="panel" aria-labelledby="sec-counts">
+                <h2 class="panel-title" id="sec-counts">Question Counts</h2>
+                <div class="field-row">
+                    <label for="mcq-count">MCQs</label>
+                    <input type="number" id="mcq-count" name="mcq_count" min="0" max="50" value="5">
+                </div>
+                <div class="field-row">
+                    <label for="short-count">Short Qs</label>
+                    <input type="number" id="short-count" name="short_count" min="0" max="30" value="3">
+                </div>
+                <div class="field-row">
+                    <label for="long-count">Long Qs</label>
+                    <input type="number" id="long-count" name="long_count" min="0" max="15" value="1">
+                </div>
+            </section>
+
+            <section class="panel" aria-labelledby="sec-details">
+                <h2 class="panel-title" id="sec-details">Academy Details</h2>
+                <div class="field-col">
+                    <label for="logo-upload">Logo <span class="optional">(optional)</span></label>
+                    <input type="file" id="logo-upload" accept="image/*" class="file-input">
+                </div>
+                <div class="field-col">
+                    <label for="academy-name">Academy Name</label>
+                    <input type="text" id="academy-name" value="Global Excellence Academy" placeholder="Academy name">
+                </div>
+                <div class="field-col">
+                    <label for="academy-location">Location</label>
+                    <input type="text" id="academy-location" value="New York City Campus" placeholder="e.g. Main Campus">
+                </div>
+                <div class="field-col">
+                    <label for="subject-name">Subject</label>
+                    <input type="text" id="subject-name" value="Computer Science" placeholder="e.g. Mathematics">
+                </div>
+                <div class="field-col">
+                    <label for="test-instructions">Instructions</label>
+                    <textarea id="test-instructions" rows="3" placeholder="e.g. Attempt all questions.">Attempt all questions carefully. Time management is crucial.</textarea>
+                </div>
+            </section>
+
+            <section class="panel" aria-labelledby="sec-chapter">
+                <h2 class="panel-title" id="sec-chapter">Chapter Filter</h2>
+                <div class="field-col">
+                    <label for="chapter-select">Chapter</label>
+                    <select id="chapter-select" class="chapter-select">
+                        <option value="All">All Chapters</option>
+                        {% for ch in chapters %}
+                        <option value="{{ ch }}">{{ ch }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </section>
+
+            <section class="panel" aria-labelledby="sec-style">
+                <h2 class="panel-title" id="sec-style">Style</h2>
+                <div class="field-row">
+                    <label for="font-size">Font Size</label>
+                    <div class="input-affix">
+                        <input type="number" id="font-size" min="10" max="20" value="13">
+                        <span class="affix">px</span>
+                    </div>
+                </div>
+            </section>
+
+            <button type="submit" class="btn btn-generate" id="generate-btn">
+                <span class="btn-inner">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="13 2 13 9 20 9"/><polygon points="22 2 12 12 2 2"/><path d="M20 9v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h7"/></svg>
+                    <span id="gen-label">Generate Test</span>
+                </span>
+                <div class="spinner" id="gen-spinner" aria-hidden="true" hidden></div>
+            </button>
+        </form>
+
+        <div id="export-zone" class="export-zone" hidden>
+            <button id="export-pdf-btn" class="btn btn-export">
+                <span class="btn-inner">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                    <span id="exp-label">Save as PDF</span>
+                </span>
+                <div class="spinner" id="exp-spinner" aria-hidden="true" hidden></div>
+            </button>
+            <p class="export-note" id="export-note">Vector PDF · Selectable text</p>
+        </div>
+
+        <div id="error-banner" class="error-banner" role="alert" aria-live="assertive" hidden></div>
+    </aside>
+
+    <!-- ── Workspace ── -->
+    <main class="workspace" aria-label="Test Preview">
+        <div class="paper-wrap" id="pages-container">
+            <!-- Empty state placeholder -->
+            <div class="paper" id="empty-paper">
+                <div class="empty-state" id="empty-state">
+                    <div class="empty-icon" aria-hidden="true">📄</div>
+                    <h3>Ready to Generate</h3>
+                    <p>Configure the panel on the left and click <strong>Generate Test</strong> to preview your exam paper.</p>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- Live region for screen readers -->
+<div id="sr-live" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>
